@@ -35,6 +35,10 @@ const processVideoBtn = document.getElementById('process-video');
 const processStatus = document.getElementById('process-status');
 const customVideoName = document.getElementById('custom-video-name');
 const coverInput = document.getElementById('coverInput');
+const extractFrameBtn = document.getElementById('extract-frame-btn');
+const coverPreview = document.getElementById('cover-preview');
+
+let extractedCoverBlob = null;
 
 let currentOriginalBlob = null;
 let currentOriginalName = null;
@@ -49,6 +53,32 @@ enableCrop.addEventListener('change', () => {
   cropSettings.style.pointerEvents = enableCrop.checked ? 'auto' : 'none';
   cropOverlay.style.display = enableCrop.checked ? 'block' : 'none';
 });
+
+extractFrameBtn.addEventListener('click', () => {
+  const canvas = document.createElement('canvas');
+  canvas.width = editorVideo.videoWidth;
+  canvas.height = editorVideo.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(editorVideo, 0, 0, canvas.width, canvas.height);
+  
+  canvas.toBlob((blob) => {
+    extractedCoverBlob = blob;
+    coverPreview.src = URL.createObjectURL(blob);
+    coverPreview.style.display = 'block';
+    if (coverInput) coverInput.value = '';
+  }, 'image/jpeg', 0.85);
+});
+
+if (coverInput) {
+  coverInput.addEventListener('change', () => {
+    extractedCoverBlob = null;
+    coverPreview.style.display = 'none';
+    if (coverPreview.src) {
+      URL.revokeObjectURL(coverPreview.src);
+      coverPreview.src = '';
+    }
+  });
+}
 
 let isDragging = false;
 let isResizing = false;
@@ -233,6 +263,12 @@ cancelEdit.addEventListener('click', () => {
   currentOriginalBlob = null;
   processStatus.textContent = '';
   if (coverInput) coverInput.value = '';
+  extractedCoverBlob = null;
+  coverPreview.style.display = 'none';
+  if (coverPreview.src) {
+    URL.revokeObjectURL(coverPreview.src);
+    coverPreview.src = '';
+  }
   editingVideoId = null;
   editingVideoViews = 0;
   editingVideoDownloads = 0;
@@ -301,8 +337,8 @@ processVideoBtn.addEventListener('click', async () => {
       const mime = finalRec.mimeType || 'video/webm';
       const finalBlob = new Blob(recChunks, { type: mime });
       try {
-        let coverBlob = null;
-        if (coverInput && coverInput.files && coverInput.files[0]) {
+        let coverBlob = extractedCoverBlob;
+        if (!coverBlob && coverInput && coverInput.files && coverInput.files[0]) {
           coverBlob = coverInput.files[0];
         }
         
@@ -324,6 +360,12 @@ processVideoBtn.addEventListener('click', async () => {
       fileInput.disabled = false;
       fileInput.value = '';
       if (coverInput) coverInput.value = '';
+      extractedCoverBlob = null;
+      coverPreview.style.display = 'none';
+      if (coverPreview.src) {
+        URL.revokeObjectURL(coverPreview.src);
+        coverPreview.src = '';
+      }
       processVideoBtn.disabled = false;
       cancelEdit.disabled = false;
       processStatus.textContent = '';

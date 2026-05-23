@@ -48,6 +48,10 @@
           <label style="display: block; margin-bottom: 15px;">
             <strong style="color: var(--accent);">Cover Photo (Optional):</strong>
             <input type="file" id="coverInput" accept="image/*" style="width: 100%; margin-top: 5px;">
+            <div style="margin-top: 10px; display: flex; align-items: center; gap: 15px;">
+              <button id="extract-frame-btn" class="btn" type="button" style="padding: 8px 12px; font-size: 0.9rem; background: rgba(0,0,0,0.3); border: 1px solid var(--accent);"><i class="fa-solid fa-camera"></i> Capture Frame from Video</button>
+              <img id="cover-preview" style="max-height: 80px; border-radius: 6px; display: none; border: 1px solid var(--glass-border);">
+            </div>
           </label>
           
           <div id="video-wrapper" style="position: relative; display: inline-block; margin-bottom: 15px; overflow: hidden; border-radius: 8px;">
