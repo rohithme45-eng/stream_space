@@ -1,26 +1,54 @@
 import { getAllVideos, getVideo, incrementStat, decrementStat, addComment } from './video-db.js?v=8';
 
-const container = document.getElementById('videos');
+const videosContainer = document.getElementById('videos');
+const photosContainer = document.getElementById('photos');
+
+const tabVideos = document.getElementById('tab-videos');
+const tabPhotos = document.getElementById('tab-photos');
+
+tabVideos.addEventListener('click', () => {
+  tabVideos.style.background = 'var(--accent)';
+  tabPhotos.style.background = 'rgba(0,0,0,0.4)';
+  videosContainer.style.display = 'grid';
+  photosContainer.style.display = 'none';
+});
+
+tabPhotos.addEventListener('click', () => {
+  tabPhotos.style.background = 'var(--accent)';
+  tabVideos.style.background = 'rgba(0,0,0,0.4)';
+  photosContainer.style.display = 'grid';
+  videosContainer.style.display = 'none';
+});
 
 async function render(){
   const all = await getAllVideos();
   if(!all || all.length === 0){
-    container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); font-size: 1.2rem;">No media content available yet. Admins can upload videos from the portal.</p>';
+    videosContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); font-size: 1.2rem;">No media content available yet. Admins can upload media from the portal.</p>';
+    photosContainer.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); font-size: 1.2rem;">No media content available yet. Admins can upload media from the portal.</p>';
     return;
   }
   all.sort((a,b) => b.createdAt - a.createdAt);
   
-  const currentIds = new Set(all.map(v => `video-card-${v.id}`));
-  Array.from(container.children).forEach(child => {
-    if (child.className === 'card' && !currentIds.has(child.id)) {
-      child.remove();
-    } else if (child.tagName === 'P') {
-      child.remove();
-    }
-  });
+  const currentIds = new Set(all.map(v => `media-card-${v.id}`));
+  
+  const clearStale = (container) => {
+    Array.from(container.children).forEach(child => {
+      if (child.className === 'card' && !currentIds.has(child.id)) {
+        child.remove();
+      } else if (child.tagName === 'P') {
+        child.remove();
+      }
+    });
+  };
+  
+  clearStale(videosContainer);
+  clearStale(photosContainer);
   
   for(const item of all){
-    let card = document.getElementById(`video-card-${item.id}`);
+    const isImage = item.type && item.type.startsWith('image/');
+    const targetContainer = isImage ? photosContainer : videosContainer;
+    
+    let card = document.getElementById(`media-card-${item.id}`);
     const hasLiked = localStorage.getItem('liked_' + item.id) === 'true';
     
     if (card) {
@@ -59,24 +87,34 @@ async function render(){
     
     card = document.createElement('div');
     card.className = 'card';
-    card.id = `video-card-${item.id}`;
+    card.id = `media-card-${item.id}`;
     
     const title = document.createElement('div');
     title.className = 'card-title';
-    title.innerHTML = `<i class="fa-solid fa-clapperboard" style="color: var(--accent); margin-right: 8px;"></i>${item.name}`;
+    title.innerHTML = `<i class="fa-solid ${isImage ? 'fa-image' : 'fa-clapperboard'}" style="color: var(--accent); margin-right: 8px;"></i>${item.name}`;
     
-    const videoEl = document.createElement('video');
-    videoEl.controls = true;
-    videoEl.playsInline = true;
-    if (item.url) {
-      videoEl.src = item.url;
-      if (item.coverUrl) {
-        videoEl.poster = item.coverUrl;
+    let mediaEl;
+    if (isImage) {
+      mediaEl = document.createElement('img');
+      mediaEl.style.width = '100%';
+      mediaEl.style.borderRadius = '12px';
+      mediaEl.style.boxShadow = '0 4px 15px rgba(0,0,0,0.5)';
+      mediaEl.style.marginBottom = '12px';
+      if (item.url) mediaEl.src = item.url;
+    } else {
+      mediaEl = document.createElement('video');
+      mediaEl.controls = true;
+      mediaEl.playsInline = true;
+      if (item.url) {
+        mediaEl.src = item.url;
+        if (item.coverUrl) {
+          mediaEl.poster = item.coverUrl;
+        }
+        mediaEl.crossOrigin = 'anonymous';
+        mediaEl.addEventListener('play', () => {
+          incrementStat(item.id, 'views');
+        }, {once: true});
       }
-      videoEl.crossOrigin = 'anonymous';
-      videoEl.addEventListener('play', () => {
-        incrementStat(item.id, 'views');
-      }, {once: true});
     }
     
     const dl = document.createElement('a');
@@ -93,13 +131,13 @@ async function render(){
         const b = await res.blob();
         const a = document.createElement('a');
         a.href = URL.createObjectURL(b);
-        a.download = item.name || ('video-' + item.id);
+        a.download = item.name || ('media-' + item.id);
         document.body.appendChild(a);
         a.click();
         a.remove();
         incrementStat(item.id, 'downloads');
       } catch(err) {
-        alert('Failed to download video.');
+        alert('Failed to download media.');
         console.error(err);
       }
       dl.innerHTML = oldHtml;
@@ -178,17 +216,13 @@ async function render(){
     commentsSection.appendChild(commentForm);
 
     card.appendChild(title);
-    card.appendChild(videoEl);
+    card.appendChild(mediaEl);
     card.appendChild(statsRow);
     card.appendChild(commentsSection);
-    container.appendChild(card);
+    targetContainer.appendChild(card);
   }
 }
 
 render();
-
-// Optional: refresh on visibility change
 window.addEventListener('focus', () => render());
-
-// Auto-update when admin adds/modifies/deletes video
 window.addEventListener('db-update', () => render());

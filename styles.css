@@ -134,7 +134,7 @@ h2 {
 }
 
 /* Video Grid */
-#videos {
+#videos, #photos {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 24px;
@@ -401,7 +401,7 @@ label {
     padding: 16px;
   }
 
-  #videos {
+  #videos, #photos {
     grid-template-columns: 1fr;
   }
 

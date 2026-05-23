@@ -31,8 +31,15 @@
     </nav>
   </header>
   <main>
+    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+      <button id="tab-videos" class="btn">Videos</button>
+      <button id="tab-photos" class="btn" style="background: rgba(0,0,0,0.4);">Photos</button>
+    </div>
     <div id="videos">
       <!-- Videos will be injected here via viewer.js -->
+    </div>
+    <div id="photos" style="display: none;">
+      <!-- Photos will be injected here via viewer.js -->
     </div>
   </main>
   <script type="module" src="scripts/viewer.js?v=12"></script>

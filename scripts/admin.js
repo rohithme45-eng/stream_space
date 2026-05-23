@@ -38,6 +38,13 @@ const coverInput = document.getElementById('coverInput');
 const extractFrameBtn = document.getElementById('extract-frame-btn');
 const coverPreview = document.getElementById('cover-preview');
 
+const photoEditor = document.getElementById('photo-editor');
+const customPhotoName = document.getElementById('custom-photo-name');
+const photoPreview = document.getElementById('photo-preview');
+const cancelPhotoEdit = document.getElementById('cancel-photo-edit');
+const processPhoto = document.getElementById('process-photo');
+const photoStatus = document.getElementById('photo-status');
+
 let extractedCoverBlob = null;
 
 let currentOriginalBlob = null;
@@ -200,25 +207,41 @@ stopRec.addEventListener('click', () => {
   stopRec.disabled = true;
 });
 
-fileInput.addEventListener('change', async (e) => {
-  const f = e.target.files && e.target.files[0];
-  if(!f) return;
-  
-  if (f.size > MAX_FILE_SIZE_BYTES) {
-    status.style.color = 'var(--danger)';
-    status.textContent = `Error: File size exceeds the ${MAX_FILE_SIZE_MB}MB limit.`;
-    e.target.value = ''; // Reset input
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    alert(`File too large. Limit is ${MAX_FILE_SIZE_MB}MB.`);
+    fileInput.value = '';
+    return;
+  }
+
+  if (file.type.startsWith('image/')) {
+    videoEditor.hidden = true;
+    photoEditor.hidden = false;
+    currentOriginalBlob = file;
+    currentOriginalName = file.name;
+    customPhotoName.value = file.name;
+    photoPreview.src = URL.createObjectURL(file);
+    fileInput.disabled = true;
+    return;
+  }
+
+  if (!file.type.startsWith('video/')) {
+    alert('Please select a valid video or image file.');
+    fileInput.value = '';
     return;
   }
   
-  currentOriginalBlob = f;
-  currentOriginalName = f.name || ('upload-' + Date.now());
+  currentOriginalBlob = file;
+  currentOriginalName = file.name || ('upload-' + Date.now());
   customVideoName.value = currentOriginalName;
   
   videoEditor.hidden = false;
   fileInput.disabled = true;
   
-  const url = URL.createObjectURL(f);
+  const url = URL.createObjectURL(file);
   editorVideo.src = url;
   
   editorVideo.onloadedmetadata = () => {
@@ -391,6 +414,56 @@ processVideoBtn.addEventListener('click', async () => {
   }
 });
 
+cancelPhotoEdit.addEventListener('click', () => {
+  URL.revokeObjectURL(photoPreview.src);
+  currentOriginalBlob = null;
+  currentOriginalName = null;
+  photoEditor.hidden = true;
+  fileInput.disabled = false;
+  fileInput.value = '';
+  photoStatus.textContent = '';
+  editingVideoId = null;
+});
+
+processPhoto.addEventListener('click', async () => {
+  if (!currentOriginalBlob && !editingVideoId) return;
+  processPhoto.disabled = true;
+  cancelPhotoEdit.disabled = true;
+  photoStatus.textContent = 'Uploading photo...';
+  
+  try {
+    const name = customPhotoName.value.trim() || currentOriginalName;
+    
+    if (editingVideoId) {
+      let blobToUpload = currentOriginalBlob;
+      if (!blobToUpload) {
+        const res = await fetch(photoPreview.src);
+        blobToUpload = await res.blob();
+      }
+      await updateVideo(editingVideoId, blobToUpload, name, editingVideoViews, editingVideoDownloads, editingVideoCreatedAt, null);
+      updateAnalytics();
+    } else {
+      await saveVideo(currentOriginalBlob, name);
+    }
+    
+    photoStatus.textContent = editingVideoId ? 'Update complete!' : 'Upload complete!';
+    setTimeout(() => {
+      photoEditor.hidden = true;
+      fileInput.disabled = false;
+      fileInput.value = '';
+      processPhoto.disabled = false;
+      cancelPhotoEdit.disabled = false;
+      photoStatus.textContent = '';
+      editingVideoId = null;
+    }, 2000);
+  } catch (err) {
+    photoStatus.textContent = 'Error: ' + err.message;
+    processPhoto.disabled = false;
+    cancelPhotoEdit.disabled = false;
+  }
+});
+
+let analyticsData = [];
 async function updateAnalytics() {
   const container = document.getElementById('analytics-container');
   if (!container) return;
@@ -432,6 +505,18 @@ async function updateAnalytics() {
         editingVideoCreatedAt = fullVideo.createdAt;
         
         currentOriginalBlob = null;
+        if (fullVideo.type && fullVideo.type.startsWith('image/')) {
+          currentOriginalName = fullVideo.name;
+          customPhotoName.value = currentOriginalName;
+          
+          photoEditor.hidden = false;
+          fileInput.disabled = true;
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          
+          photoPreview.src = fullVideo.url;
+          return;
+        }
+
         currentOriginalName = fullVideo.name;
         customVideoName.value = currentOriginalName;
         
