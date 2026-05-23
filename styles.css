@@ -264,6 +264,21 @@ main > * {
   margin-top: 12px;
 }
 
+.analytics-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  border: 1px solid var(--glass-border);
+}
+
+.analytics-actions {
+  display: flex;
+  gap: 10px;
+}
+
 #login {
   max-width: 400px;
   margin: 100px auto;
@@ -317,6 +332,40 @@ label {
 
   #crop-settings {
     grid-template-columns: 1fr !important;
+  }
+
+  .stats-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .analytics-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .analytics-actions {
+    width: 100%;
+  }
+  
+  .analytics-actions .btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.3rem;
+  }
+  
+  nav a {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .card-title {
+    font-size: 1rem;
   }
 }
 

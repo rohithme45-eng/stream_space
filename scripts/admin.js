@@ -369,20 +369,12 @@ async function updateAnalytics() {
       const row = document.createElement('div');
       row.className = 'analytics-row';
       row.id = 'analytics-row-' + item.id;
-      row.style.display = 'flex';
-      row.style.justifyContent = 'space-between';
-      row.style.alignItems = 'center';
-      row.style.padding = '10px';
-      row.style.background = 'rgba(0,0,0,0.2)';
-      row.style.borderRadius = '8px';
-      row.style.border = '1px solid var(--glass-border)';
       
       const info = document.createElement('div');
       info.id = 'analytics-info-' + item.id;
       
       const actionsDiv = document.createElement('div');
-      actionsDiv.style.display = 'flex';
-      actionsDiv.style.gap = '10px';
+      actionsDiv.className = 'analytics-actions';
       
       const editBtn = document.createElement('button');
       editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
