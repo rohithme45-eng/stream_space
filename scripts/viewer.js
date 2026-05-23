@@ -1,4 +1,4 @@
-import { getAllVideos, getVideo, incrementStat, bc } from './video-db.js?v=5';
+import { getAllVideos, getVideo, incrementStat } from './video-db.js?v=6';
 
 const container = document.getElementById('videos');
 
@@ -70,6 +70,4 @@ render();
 window.addEventListener('focus', () => render());
 
 // Auto-update when admin adds/modifies/deletes video
-bc.onmessage = (e) => {
-  if (e.data === 'update') render();
-};
+window.addEventListener('db-update', () => render());

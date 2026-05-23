@@ -1,8 +1,6 @@
-import { saveVideo, getAllVideos, deleteVideo, updateVideo, getVideo, bc } from './video-db.js?v=5';
+import { saveVideo, getAllVideos, deleteVideo, updateVideo, getVideo } from './video-db.js?v=6';
 
-bc.onmessage = (e) => {
-  if (e.data === 'update') updateAnalytics();
-};
+window.addEventListener('db-update', () => updateAnalytics());
 
 const ADMIN_PASSWORD = 'actress@69'; // frontend-only password
 const MAX_FILE_SIZE_MB = 100; // 100 MB limit

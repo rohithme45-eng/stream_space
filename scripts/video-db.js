@@ -6,13 +6,21 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const bc = new BroadcastChannel('streamspace_channel');
 
+bc.onmessage = (e) => {
+  if (e.data === 'update') {
+    window.dispatchEvent(new Event('db-update'));
+  }
+};
+
 // Global real-time updates without needing complex Postgres Realtime setup!
 const channel = supabase.channel('global-updates');
 channel.on('broadcast', { event: 'db-update' }, () => {
+  window.dispatchEvent(new Event('db-update'));
   bc.postMessage('update');
 }).subscribe();
 
 function notifyUpdate() {
+  window.dispatchEvent(new Event('db-update'));
   bc.postMessage('update');
   channel.send({ type: 'broadcast', event: 'db-update', payload: {} });
 }
