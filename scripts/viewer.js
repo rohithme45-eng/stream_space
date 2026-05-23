@@ -21,11 +21,10 @@ async function render(){
     const videoEl = document.createElement('video');
     videoEl.controls = true;
     videoEl.playsInline = true;
-    // load blob and set src
-    const rec = await getVideo(item.id);
-    if(rec && rec.blob){
-      const url = URL.createObjectURL(rec.blob);
-      videoEl.src = url;
+    // set src from remote url
+    if (item.url) {
+      videoEl.src = item.url;
+      videoEl.crossOrigin = 'anonymous';
       videoEl.addEventListener('play', () => {
         incrementStat(item.id, 'views');
       }, {once: true});
@@ -37,16 +36,25 @@ async function render(){
     dl.href = '#';
     dl.addEventListener('click', async (e) =>{
       e.preventDefault();
-      const r = await getVideo(item.id);
-      if(r && r.blob){
+      const oldHtml = dl.innerHTML;
+      dl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Downloading...';
+      dl.style.pointerEvents = 'none';
+      try {
+        const res = await fetch(item.url);
+        const b = await res.blob();
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(r.blob);
+        a.href = URL.createObjectURL(b);
         a.download = item.name || ('video-' + item.id);
         document.body.appendChild(a);
         a.click();
         a.remove();
         incrementStat(item.id, 'downloads');
+      } catch(err) {
+        alert('Failed to download video.');
+        console.error(err);
       }
+      dl.innerHTML = oldHtml;
+      dl.style.pointerEvents = 'auto';
     });
     
     card.appendChild(title);

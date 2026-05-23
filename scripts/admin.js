@@ -391,7 +391,7 @@ async function updateAnalytics() {
         editingVideoDownloads = fullVideo.downloads;
         editingVideoCreatedAt = fullVideo.createdAt;
         
-        currentOriginalBlob = fullVideo.blob;
+        currentOriginalBlob = null;
         currentOriginalName = fullVideo.name;
         customVideoName.value = currentOriginalName;
         
@@ -399,8 +399,8 @@ async function updateAnalytics() {
         fileInput.disabled = true;
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        const url = URL.createObjectURL(fullVideo.blob);
-        editorVideo.src = url;
+        editorVideo.crossOrigin = 'anonymous';
+        editorVideo.src = fullVideo.url;
         
         editorVideo.onloadedmetadata = () => {
           trimStart.value = 0;
