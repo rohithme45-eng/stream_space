@@ -1,3 +1,6 @@
 {
-  "name": "stream-space"
+  "name": "stream-space",
+  "dependencies": {
+    "firebase": "^12.13.0"
+  }
 }

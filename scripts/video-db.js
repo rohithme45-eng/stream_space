@@ -1,103 +1,144 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc, increment, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCQaeuXdruh0A3smnwJAPYx3dRfO7OKdIo",
-  authDomain: "streamspace-9076b.firebaseapp.com",
-  projectId: "streamspace-9076b",
-  storageBucket: "streamspace-9076b.firebasestorage.app",
-  messagingSenderId: "23968527444",
-  appId: "1:23968527444:web:5a6e60a44b4ccf001f29c1",
-  measurementId: "G-B7SERY3YHR"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const storage = getStorage(app);
+const supabaseUrl = 'https://xtrrxjvwparskbtdguuy.supabase.co';
+const supabaseKey = 'sb_publishable_M-7CyggKW6e3ZtWhVADdnA_E6bGmVzy';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const bc = new BroadcastChannel('streamspace_channel');
 
-let initialized = false;
-onSnapshot(collection(db, 'videos'), () => {
-  if (initialized) {
-    bc.postMessage('update');
-  }
-  initialized = true;
-});
+// Global real-time updates without needing complex Postgres Realtime setup!
+const channel = supabase.channel('global-updates');
+channel.on('broadcast', { event: 'db-update' }, () => {
+  bc.postMessage('update');
+}).subscribe();
+
+function notifyUpdate() {
+  bc.postMessage('update');
+  channel.send({ type: 'broadcast', event: 'db-update', payload: {} });
+}
+
+function mapVideo(d) {
+  if (!d) return null;
+  return {
+    ...d,
+    storagePath: d.storagepath,
+    createdAt: parseInt(d.createdat, 10) || 0
+  };
+}
 
 export async function saveVideo(blob, name = 'video') {
-  const fileId = Date.now().toString() + Math.random().toString(36).substring(2);
-  const storageRef = ref(storage, 'videos/' + fileId);
+  const fileId = Date.now().toString() + '-' + Math.random().toString(36).substring(2) + '.webm';
   
-  await uploadBytesResumable(storageRef, blob);
-  const url = await getDownloadURL(storageRef);
+  const { error: uploadError } = await supabase.storage
+    .from('videos')
+    .upload(fileId, blob, {
+      contentType: blob.type || 'video/webm'
+    });
+    
+  if (uploadError) throw new Error("Storage Upload Failed: " + uploadError.message);
+
+  const { data: publicUrlData } = supabase.storage
+    .from('videos')
+    .getPublicUrl(fileId);
+    
+  const url = publicUrlData.publicUrl;
   
-  await addDoc(collection(db, 'videos'), {
-    name,
-    url,
-    storagePath: 'videos/' + fileId,
-    size: blob.size,
-    type: blob.type || 'video/webm',
-    createdAt: Date.now(),
-    views: 0,
-    downloads: 0
-  });
+  const { error: dbError } = await supabase
+    .from('videos')
+    .insert([{
+      name,
+      url,
+      storagepath: fileId,
+      size: blob.size,
+      type: blob.type || 'video/webm',
+      createdat: Date.now(),
+      views: 0,
+      downloads: 0
+    }]);
+    
+  if (dbError) throw new Error("Database Insert Failed: " + dbError.message);
+  
+  notifyUpdate();
 }
 
 export async function updateVideo(id, blob, name, views = 0, downloads = 0, createdAt = null) {
-  const fileId = Date.now().toString() + Math.random().toString(36).substring(2);
-  const storageRef = ref(storage, 'videos/' + fileId);
+  const fileId = Date.now().toString() + '-' + Math.random().toString(36).substring(2) + '.webm';
   
-  await uploadBytesResumable(storageRef, blob);
-  const url = await getDownloadURL(storageRef);
+  const { error: uploadError } = await supabase.storage
+    .from('videos')
+    .upload(fileId, blob, {
+      contentType: blob.type || 'video/webm'
+    });
+    
+  if (uploadError) throw new Error("Storage Upload Failed: " + uploadError.message);
+
+  const { data: publicUrlData } = supabase.storage
+    .from('videos')
+    .getPublicUrl(fileId);
+    
+  const url = publicUrlData.publicUrl;
   
-  const oldDoc = await getDoc(doc(db, 'videos', id));
-  if (oldDoc.exists() && oldDoc.data().storagePath) {
+  const { data: oldDoc } = await supabase.from('videos').select('storagepath').eq('id', id).single();
+  if (oldDoc && oldDoc.storagepath) {
     try {
-       await deleteObject(ref(storage, oldDoc.data().storagePath));
+       await supabase.storage.from('videos').remove([oldDoc.storagepath]);
     } catch(e) {
-       console.warn('Failed to delete old video file:', e);
+       console.warn("Failed to delete old storage file", e);
     }
   }
 
-  await updateDoc(doc(db, 'videos', id), {
-    name,
-    url,
-    storagePath: 'videos/' + fileId,
-    size: blob.size,
-    type: blob.type || 'video/webm',
-    createdAt: createdAt || Date.now(),
-    views,
-    downloads
-  });
+  const { error: dbError } = await supabase
+    .from('videos')
+    .update({
+      name,
+      url,
+      storagepath: fileId,
+      size: blob.size,
+      type: blob.type || 'video/webm',
+      createdat: createdAt || Date.now(),
+      views,
+      downloads
+    })
+    .eq('id', id);
+    
+  if (dbError) throw new Error("Database Update Failed: " + dbError.message);
+  
+  notifyUpdate();
 }
 
 export async function getAllVideos() {
-  const snap = await getDocs(collection(db, 'videos'));
-  return snap.docs.map(d => ({id: d.id, ...d.data()}));
+  const { data, error } = await supabase.from('videos').select('*');
+  if (error) throw new Error("Database Fetch Failed: " + error.message);
+  return data.map(mapVideo);
 }
 
 export async function getVideo(id) {
-  const d = await getDoc(doc(db, 'videos', id));
-  if (!d.exists()) return null;
-  return {id: d.id, ...d.data()};
+  const { data, error } = await supabase.from('videos').select('*').eq('id', id).single();
+  if (error) return null;
+  return mapVideo(data);
 }
 
 export async function deleteVideo(id) {
-  const d = await getDoc(doc(db, 'videos', id));
-  if (d.exists() && d.data().storagePath) {
+  const { data: oldDoc } = await supabase.from('videos').select('storagepath').eq('id', id).single();
+  if (oldDoc && oldDoc.storagepath) {
     try {
-      await deleteObject(ref(storage, d.data().storagePath));
+      await supabase.storage.from('videos').remove([oldDoc.storagepath]);
     } catch(e) {
-      console.warn('Failed to delete video file:', e);
+      console.warn("Failed to delete storage file", e);
     }
   }
-  await deleteDoc(doc(db, 'videos', id));
+  
+  const { error } = await supabase.from('videos').delete().eq('id', id);
+  if (error) throw new Error("Database Delete Failed: " + error.message);
+  
+  notifyUpdate();
 }
 
 export async function incrementStat(id, statName) {
-  await updateDoc(doc(db, 'videos', id), {
-    [statName]: increment(1)
-  });
+  const { data: doc } = await supabase.from('videos').select(statName).eq('id', id).single();
+  if (doc) {
+    const newVal = (doc[statName] || 0) + 1;
+    await supabase.from('videos').update({ [statName]: newVal }).eq('id', id);
+    notifyUpdate();
+  }
 }
