@@ -44,6 +44,11 @@
             <strong style="color: var(--accent);">Unique Video Name:</strong>
             <input type="text" id="custom-video-name" style="width: 100%; padding: 10px; margin-top: 5px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: white; border-radius: 6px;">
           </label>
+
+          <label style="display: block; margin-bottom: 15px;">
+            <strong style="color: var(--accent);">Cover Photo (Optional):</strong>
+            <input type="file" id="coverInput" accept="image/*" style="width: 100%; margin-top: 5px;">
+          </label>
           
           <div id="video-wrapper" style="position: relative; display: inline-block; margin-bottom: 15px; overflow: hidden; border-radius: 8px;">
             <video id="editor-video" controls style="display: block; background: black;"></video>
@@ -88,6 +93,6 @@
       <div id="status"></div>
     </div>
   </main>
-  <script type="module" src="scripts/admin.js?v=6"></script>
+  <script type="module" src="scripts/admin.js?v=7"></script>
 </body>
 </html>

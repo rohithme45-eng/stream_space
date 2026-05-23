@@ -32,11 +32,12 @@ function mapVideo(d) {
     storagePath: d.storagepath,
     createdAt: parseInt(d.createdat, 10) || 0,
     likes: d.likes || 0,
-    comments: d.comments || []
+    comments: d.comments || [],
+    coverUrl: d.cover_url || null
   };
 }
 
-export async function saveVideo(blob, name = 'video') {
+export async function saveVideo(blob, name = 'video', coverBlob = null) {
   const fileId = Date.now().toString() + '-' + Math.random().toString(36).substring(2) + '.webm';
   
   const { error: uploadError } = await supabase.storage
@@ -52,6 +53,16 @@ export async function saveVideo(blob, name = 'video') {
     .getPublicUrl(fileId);
     
   const url = publicUrlData.publicUrl;
+  
+  let coverUrl = null;
+  if (coverBlob) {
+    const coverId = 'cover-' + Date.now().toString() + '-' + Math.random().toString(36).substring(2) + '.jpg';
+    const { error: coverUploadError } = await supabase.storage.from('videos').upload(coverId, coverBlob, { contentType: coverBlob.type || 'image/jpeg' });
+    if (!coverUploadError) {
+      const { data: cData } = supabase.storage.from('videos').getPublicUrl(coverId);
+      coverUrl = cData.publicUrl;
+    }
+  }
   
   const { error: dbError } = await supabase
     .from('videos')
@@ -63,7 +74,8 @@ export async function saveVideo(blob, name = 'video') {
       type: blob.type || 'video/webm',
       createdat: Date.now(),
       views: 0,
-      downloads: 0
+      downloads: 0,
+      cover_url: coverUrl
     }]);
     
   if (dbError) throw new Error("Database Insert Failed: " + dbError.message);
@@ -71,7 +83,7 @@ export async function saveVideo(blob, name = 'video') {
   notifyUpdate();
 }
 
-export async function updateVideo(id, blob, name, views = 0, downloads = 0, createdAt = null) {
+export async function updateVideo(id, blob, name, views = 0, downloads = 0, createdAt = null, coverBlob = null) {
   const fileId = Date.now().toString() + '-' + Math.random().toString(36).substring(2) + '.webm';
   
   const { error: uploadError } = await supabase.storage
@@ -88,7 +100,17 @@ export async function updateVideo(id, blob, name, views = 0, downloads = 0, crea
     
   const url = publicUrlData.publicUrl;
   
-  const { data: oldDoc } = await supabase.from('videos').select('storagepath').eq('id', id).single();
+  let coverUrl = null;
+  if (coverBlob) {
+    const coverId = 'cover-' + Date.now().toString() + '-' + Math.random().toString(36).substring(2) + '.jpg';
+    const { error: coverUploadError } = await supabase.storage.from('videos').upload(coverId, coverBlob, { contentType: coverBlob.type || 'image/jpeg' });
+    if (!coverUploadError) {
+      const { data: cData } = supabase.storage.from('videos').getPublicUrl(coverId);
+      coverUrl = cData.publicUrl;
+    }
+  }
+
+  const { data: oldDoc } = await supabase.from('videos').select('storagepath, cover_url').eq('id', id).single();
   if (oldDoc && oldDoc.storagepath) {
     try {
        await supabase.storage.from('videos').remove([oldDoc.storagepath]);
@@ -96,19 +118,28 @@ export async function updateVideo(id, blob, name, views = 0, downloads = 0, crea
        console.warn("Failed to delete old storage file", e);
     }
   }
+  
+  // Also try to delete old cover if a new one is provided or just leave it for now.
+  // We won't strictly enforce old cover deletion to keep things simple.
+
+  const updateData = {
+    name,
+    url,
+    storagepath: fileId,
+    size: blob.size,
+    type: blob.type || 'video/webm',
+    createdat: createdAt || Date.now(),
+    views,
+    downloads
+  };
+  
+  if (coverUrl) {
+    updateData.cover_url = coverUrl;
+  }
 
   const { error: dbError } = await supabase
     .from('videos')
-    .update({
-      name,
-      url,
-      storagepath: fileId,
-      size: blob.size,
-      type: blob.type || 'video/webm',
-      createdat: createdAt || Date.now(),
-      views,
-      downloads
-    })
+    .update(updateData)
     .eq('id', id);
     
   if (dbError) throw new Error("Database Update Failed: " + dbError.message);

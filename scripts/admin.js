@@ -34,6 +34,7 @@ const cancelEdit = document.getElementById('cancel-edit');
 const processVideoBtn = document.getElementById('process-video');
 const processStatus = document.getElementById('process-status');
 const customVideoName = document.getElementById('custom-video-name');
+const coverInput = document.getElementById('coverInput');
 
 let currentOriginalBlob = null;
 let currentOriginalName = null;
@@ -231,6 +232,7 @@ cancelEdit.addEventListener('click', () => {
   URL.revokeObjectURL(editorVideo.src);
   currentOriginalBlob = null;
   processStatus.textContent = '';
+  if (coverInput) coverInput.value = '';
   editingVideoId = null;
   editingVideoViews = 0;
   editingVideoDownloads = 0;
@@ -299,11 +301,16 @@ processVideoBtn.addEventListener('click', async () => {
       const mime = finalRec.mimeType || 'video/webm';
       const finalBlob = new Blob(recChunks, { type: mime });
       try {
+        let coverBlob = null;
+        if (coverInput && coverInput.files && coverInput.files[0]) {
+          coverBlob = coverInput.files[0];
+        }
+        
         const finalNameToSave = customVideoName.value.trim() || currentOriginalName;
         if (editingVideoId) {
-          await updateVideo(editingVideoId, finalBlob, finalNameToSave, editingVideoViews, editingVideoDownloads, editingVideoCreatedAt);
+          await updateVideo(editingVideoId, finalBlob, finalNameToSave, editingVideoViews, editingVideoDownloads, editingVideoCreatedAt, coverBlob);
         } else {
-          await saveVideo(finalBlob, finalNameToSave);
+          await saveVideo(finalBlob, finalNameToSave, coverBlob);
         }
         updateAnalytics();
         status.style.color = 'var(--success)';
@@ -316,6 +323,7 @@ processVideoBtn.addEventListener('click', async () => {
       videoEditor.hidden = true;
       fileInput.disabled = false;
       fileInput.value = '';
+      if (coverInput) coverInput.value = '';
       processVideoBtn.disabled = false;
       cancelEdit.disabled = false;
       processStatus.textContent = '';

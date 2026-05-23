@@ -1,0 +1,1 @@
+ALTER TABLE videos ADD COLUMN IF NOT EXISTS cover_url TEXT;

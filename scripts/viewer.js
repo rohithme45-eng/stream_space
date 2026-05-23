@@ -11,7 +11,7 @@ async function render(){
   all.sort((a,b) => b.createdAt - a.createdAt);
   
   // Create a signature to prevent re-rendering if only views/downloads changed
-  const currentSignature = all.map(v => `${v.id}-${v.name}-${v.url}-${v.likes}-${v.comments?.length}`).join('|');
+  const currentSignature = all.map(v => `${v.id}-${v.name}-${v.url}-${v.likes}-${v.comments?.length}-${v.coverUrl}`).join('|');
   if (container.dataset.signature === currentSignature) {
     return; // Nothing visual changed, do not interrupt playback
   }
@@ -33,6 +33,9 @@ async function render(){
     // set src from remote url
     if (item.url) {
       videoEl.src = item.url;
+      if (item.coverUrl) {
+        videoEl.poster = item.coverUrl;
+      }
       videoEl.crossOrigin = 'anonymous';
       videoEl.addEventListener('play', () => {
         incrementStat(item.id, 'views');
