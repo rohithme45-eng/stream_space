@@ -276,3 +276,47 @@ label {
   font-weight: 500;
   margin-bottom: 8px;
 }
+
+/* Media Queries for Mobile Responsiveness */
+@media (max-width: 768px) {
+  header {
+    padding: 15px 20px;
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  main {
+    margin: 20px auto;
+  }
+
+  .card, section, #login {
+    padding: 16px;
+  }
+
+  #videos {
+    grid-template-columns: 1fr;
+  }
+
+  .controls {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .controls button, .btn {
+    width: 100%;
+  }
+
+  .editor-controls {
+    grid-template-columns: 1fr !important;
+  }
+
+  #crop-settings {
+    grid-template-columns: 1fr !important;
+  }
+}
+
