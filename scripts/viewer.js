@@ -10,18 +10,56 @@ async function render(){
   }
   all.sort((a,b) => b.createdAt - a.createdAt);
   
-  // Create a signature to prevent re-rendering if only views/downloads changed
-  const currentSignature = all.map(v => `${v.id}-${v.name}-${v.url}-${v.likes}-${v.comments?.length}-${v.coverUrl}`).join('|');
-  if (container.dataset.signature === currentSignature) {
-    return; // Nothing visual changed, do not interrupt playback
-  }
-  
-  container.dataset.signature = currentSignature;
-  container.innerHTML = '';
+  const currentIds = new Set(all.map(v => `video-card-${v.id}`));
+  Array.from(container.children).forEach(child => {
+    if (child.className === 'card' && !currentIds.has(child.id)) {
+      child.remove();
+    } else if (child.tagName === 'P') {
+      child.remove();
+    }
+  });
   
   for(const item of all){
-    const card = document.createElement('div');
+    let card = document.getElementById(`video-card-${item.id}`);
+    const hasLiked = localStorage.getItem('liked_' + item.id) === 'true';
+    
+    if (card) {
+      const likeBtn = document.getElementById(`like-btn-${item.id}`);
+      if (likeBtn && !likeBtn.disabled) {
+        if (hasLiked) {
+          likeBtn.innerHTML = `<i class="fa-solid fa-heart" style="color: white;"></i> Liked (${item.likes || 0})`;
+          likeBtn.style.background = 'linear-gradient(135deg, #ff416c, #ff4b2b)';
+        } else {
+          likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i> Like (${item.likes || 0})`;
+          likeBtn.style.background = 'rgba(0,0,0,0.4)';
+        }
+      }
+      
+      const commentsTitle = document.getElementById(`comments-title-${item.id}`);
+      if (commentsTitle) {
+        commentsTitle.innerHTML = `<i class="fa-solid fa-comments"></i> Comments (${(item.comments || []).length})`;
+      }
+      
+      const commentsList = document.getElementById(`comments-list-${item.id}`);
+      if (commentsList && commentsList.children.length !== (item.comments || []).length) {
+        commentsList.innerHTML = '';
+        (item.comments || []).forEach(c => {
+          const cEl = document.createElement('div');
+          cEl.className = 'comment';
+          cEl.innerText = c.text;
+          commentsList.appendChild(cEl);
+        });
+      }
+      
+      const commentBtn = document.getElementById(`comment-btn-${item.id}`);
+      if (commentBtn) commentBtn.disabled = false;
+      
+      continue;
+    }
+    
+    card = document.createElement('div');
     card.className = 'card';
+    card.id = `video-card-${item.id}`;
     
     const title = document.createElement('div');
     title.className = 'card-title';
@@ -30,7 +68,6 @@ async function render(){
     const videoEl = document.createElement('video');
     videoEl.controls = true;
     videoEl.playsInline = true;
-    // set src from remote url
     if (item.url) {
       videoEl.src = item.url;
       if (item.coverUrl) {
@@ -69,10 +106,9 @@ async function render(){
       dl.style.pointerEvents = 'auto';
     });
     
-    const hasLiked = localStorage.getItem('liked_' + item.id) === 'true';
-    
     const likeBtn = document.createElement('button');
     likeBtn.className = 'btn like-btn';
+    likeBtn.id = `like-btn-${item.id}`;
     
     if (hasLiked) {
       likeBtn.innerHTML = `<i class="fa-solid fa-heart" style="color: white;"></i> Liked (${item.likes || 0})`;
@@ -84,7 +120,7 @@ async function render(){
     
     likeBtn.addEventListener('click', async () => {
       likeBtn.disabled = true;
-      if (hasLiked) {
+      if (localStorage.getItem('liked_' + item.id) === 'true') {
         localStorage.removeItem('liked_' + item.id);
         likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i> Like (${Math.max((item.likes || 0) - 1, 0)})`;
         likeBtn.style.background = 'rgba(0,0,0,0.4)';
@@ -95,6 +131,7 @@ async function render(){
         likeBtn.style.background = 'linear-gradient(135deg, #ff416c, #ff4b2b)';
         await incrementStat(item.id, 'likes');
       }
+      likeBtn.disabled = false;
     });
 
     const statsRow = document.createElement('div');
@@ -102,13 +139,17 @@ async function render(){
     statsRow.appendChild(likeBtn);
     statsRow.appendChild(dl);
 
-    // Comments Section
     const commentsSection = document.createElement('div');
     commentsSection.className = 'comments-section';
-    commentsSection.innerHTML = `<h3><i class="fa-solid fa-comments"></i> Comments (${(item.comments || []).length})</h3>`;
+    
+    const commentsTitle = document.createElement('h3');
+    commentsTitle.id = `comments-title-${item.id}`;
+    commentsTitle.innerHTML = `<i class="fa-solid fa-comments"></i> Comments (${(item.comments || []).length})`;
+    commentsSection.appendChild(commentsTitle);
     
     const commentsList = document.createElement('div');
     commentsList.className = 'comments-list';
+    commentsList.id = `comments-list-${item.id}`;
     (item.comments || []).forEach(c => {
       const cEl = document.createElement('div');
       cEl.className = 'comment';
@@ -121,15 +162,15 @@ async function render(){
     commentForm.className = 'comment-form';
     commentForm.innerHTML = `
       <input type="text" placeholder="Add a comment..." required>
-      <button type="submit" class="btn"><i class="fa-solid fa-paper-plane"></i></button>
+      <button type="submit" class="btn" id="comment-btn-${item.id}"><i class="fa-solid fa-paper-plane"></i></button>
     `;
     commentForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const input = commentForm.querySelector('input');
       const text = input.value.trim();
       if (text) {
-        const btn = commentForm.querySelector('button');
-        btn.disabled = true;
+        const btn = document.getElementById(`comment-btn-${item.id}`);
+        if (btn) btn.disabled = true;
         await addComment(item.id, text);
         input.value = '';
       }
