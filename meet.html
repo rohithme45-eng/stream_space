@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="StreamSpace Meet - Real-time P2P Video Calling">
+  <title>StreamSpace | Meet</title>
+  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Specific styles for the meeting room */
+    #meet-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 180px);
+      min-height: 500px;
+    }
+    
+    .video-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      flex: 1;
+      margin-bottom: 20px;
+    }
+    
+    @media (min-width: 768px) {
+      .video-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .video-wrapper {
+      position: relative;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      border: 1px solid var(--glass-border);
+    }
+    
+    .video-wrapper video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    
+    .video-label {
+      position: absolute;
+      bottom: 15px;
+      left: 15px;
+      background: rgba(0,0,0,0.6);
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+    }
+
+    .call-controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      padding: 20px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      border: 1px solid var(--glass-border);
+    }
+    
+    .control-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      border: none;
+      cursor: pointer;
+      color: white;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-active {
+      background: rgba(255,255,255,0.2);
+    }
+    
+    .btn-active:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    
+    .btn-danger {
+      background: var(--danger);
+    }
+    
+    .btn-danger:hover {
+      background: #d90429;
+      transform: scale(1.05);
+    }
+    
+    #setup-screen {
+      text-align: center;
+      max-width: 500px;
+      margin: 50px auto;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1><i class="fa-solid fa-video"></i> StreamSpace Meet</h1>
+    <nav>
+      <a href="index.html"><i class="fa-solid fa-film"></i> Viewer</a>
+      <a href="admin.html"><i class="fa-solid fa-lock"></i> Admin</a>
+    </nav>
+  </header>
+  
+  <main style="max-width: 1200px;">
+    <!-- Setup Screen (Join/Create) -->
+    <div id="setup-screen" class="card">
+      <i class="fa-solid fa-tower-broadcast" style="font-size: 3rem; color: var(--accent); margin-bottom: 20px;"></i>
+      <h2>Start or Join a Video Call</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 20px;">Experience lag-free, peer-to-peer video calling directly in your browser.</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 15px;">
+        <button id="create-room-btn" class="btn" style="padding: 15px;"><i class="fa-solid fa-plus"></i> Create New Room</button>
+        
+        <div style="display: flex; align-items: center; margin: 15px 0;">
+          <hr style="flex: 1; border-color: var(--glass-border);">
+          <span style="padding: 0 15px; color: var(--text-secondary); font-size: 0.9rem;">OR</span>
+          <hr style="flex: 1; border-color: var(--glass-border);">
+        </div>
+        
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="room-input" placeholder="Enter Room ID" style="margin: 0; flex: 1;">
+          <button id="join-room-btn" class="btn"><i class="fa-solid fa-right-to-bracket"></i> Join</button>
+        </div>
+      </div>
+      <div id="setup-status" class="hint" style="color: var(--danger); margin-top: 15px;"></div>
+    </div>
+
+    <!-- Call Screen -->
+    <div id="call-screen" hidden>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 id="room-display" style="color: var(--accent);">Room: ...</h3>
+        <button id="copy-link-btn" class="btn" style="padding: 8px 12px; font-size: 0.85rem;"><i class="fa-solid fa-copy"></i> Copy Invite Link</button>
+      </div>
+      
+      <div id="meet-container">
+        <div class="video-grid">
+          <div class="video-wrapper">
+            <video id="local-video" autoplay muted playsinline></video>
+            <div class="video-label">You</div>
+          </div>
+          <div class="video-wrapper">
+            <video id="remote-video" autoplay playsinline></video>
+            <div class="video-label" id="remote-label">Waiting for someone to join...</div>
+          </div>
+        </div>
+        
+        <div class="call-controls">
+          <button id="toggle-mic-btn" class="control-btn btn-active" title="Toggle Microphone">
+            <i class="fa-solid fa-microphone"></i>
+          </button>
+          <button id="toggle-cam-btn" class="control-btn btn-active" title="Toggle Camera">
+            <i class="fa-solid fa-video"></i>
+          </button>
+          <button id="leave-call-btn" class="control-btn btn-danger" title="Leave Call">
+            <i class="fa-solid fa-phone-slash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <script type="module" src="scripts/meet.js?v=1"></script>
+</body>
+</html>
