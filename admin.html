@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Admin portal for StreamSpace video platform. Securely upload and manage your video content.">
+  <title>Video Uploader | Admin Portal</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+  <header>
+    <h1><i class="fa-solid fa-shield-halved"></i> Admin Portal</h1>
+    <nav><a href="index.html"><i class="fa-solid fa-arrow-left"></i> Back to Viewer</a></nav>
+  </header>
+  <main>
+    <div id="login" class="card">
+      <i class="fa-solid fa-user-shield" style="font-size: 3rem; color: var(--accent); margin-bottom: 20px;"></i>
+      <h2>Admin Authentication</h2>
+      <label>Access Key:</label>
+      <input id="password" type="password" placeholder="Enter admin password (admin123)">
+      <button id="loginBtn"><i class="fa-solid fa-right-to-bracket"></i> Authenticate</button>
+      <p class="hint">Frontend-only demo environment</p>
+    </div>
+
+    <div id="adminUI" hidden>
+      <section>
+        <h2><i class="fa-solid fa-video"></i> Studio Capture</h2>
+        <video id="preview" autoplay muted playsinline></video>
+        <div class="controls">
+          <button id="startRec"><i class="fa-solid fa-circle-dot" style="color: var(--danger)"></i> Start Recording</button>
+          <button id="stopRec" disabled><i class="fa-solid fa-stop"></i> Stop Recording</button>
+        </div>
+      </section>
+
+      <section id="upload-section">
+        <h2><i class="fa-solid fa-cloud-arrow-up"></i> Upload Media</h2>
+        <input id="fileInput" type="file" accept="video/*">
+        
+        <div id="video-editor" hidden class="card" style="margin-top: 20px; border-color: var(--accent); padding: 20px;">
+          <h3 style="margin-bottom: 15px;"><i class="fa-solid fa-scissors"></i> Cut & Crop Editor</h3>
+          
+          <label style="display: block; margin-bottom: 15px;">
+            <strong style="color: var(--accent);">Unique Video Name:</strong>
+            <input type="text" id="custom-video-name" style="width: 100%; padding: 10px; margin-top: 5px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); color: white; border-radius: 6px;">
+          </label>
+          
+          <div id="video-wrapper" style="position: relative; display: inline-block; margin-bottom: 15px; overflow: hidden; border-radius: 8px;">
+            <video id="editor-video" controls style="display: block; background: black;"></video>
+            <div id="crop-overlay" style="display: none; position: absolute; border: 2px dashed var(--accent); background: rgba(255,255,255,0.1); box-shadow: 0 0 0 9999px rgba(0,0,0,0.6); cursor: move; width: 100px; height: 100px; top: 0; left: 0; z-index: 10;">
+               <div id="crop-handle" style="position: absolute; width: 16px; height: 16px; background: var(--accent); right: -8px; bottom: -8px; cursor: se-resize; border-radius: 50%; border: 2px solid white;"></div>
+            </div>
+          </div>
+          
+          <div class="editor-controls" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              <h4 style="color: var(--accent); margin-bottom: 10px;"><i class="fa-solid fa-timeline"></i> Trim</h4>
+              <label>Start Time (sec): <input type="number" id="trim-start" value="0" min="0" step="0.1"></label>
+              <label>End Time (sec): <input type="number" id="trim-end" value="0" min="0" step="0.1"></label>
+            </div>
+            <div>
+              <h4 style="color: var(--accent); margin-bottom: 10px;"><i class="fa-solid fa-crop"></i> Crop</h4>
+              <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="checkbox" id="enable-crop" style="width: auto; margin: 0;"> Enable Cropping
+              </label>
+              <div id="crop-settings" style="opacity: 0.5; pointer-events: none; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <label>X Offset: <input type="number" id="crop-x" value="0"></label>
+                <label>Y Offset: <input type="number" id="crop-y" value="0"></label>
+                <label>Width: <input type="number" id="crop-w" value="100"></label>
+                <label>Height: <input type="number" id="crop-h" value="100"></label>
+              </div>
+            </div>
+          </div>
+          
+          <div style="margin-top: 25px; text-align: right; display: flex; justify-content: flex-end; gap: 10px;">
+            <button id="cancel-edit" style="background: #444;">Cancel</button>
+            <button id="process-video" class="btn"><i class="fa-solid fa-gear"></i> Process & Save</button>
+          </div>
+          <div id="process-status" class="hint" style="text-align: right; margin-top: 10px; font-weight: bold; color: var(--accent);"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2><i class="fa-solid fa-chart-line"></i> Content Analytics</h2>
+        <div id="analytics-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+      </section>
+
+      <div id="status"></div>
+    </div>
+  </main>
+  <script type="module" src="scripts/admin.js?v=3"></script>
+</body>
+</html>
