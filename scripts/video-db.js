@@ -30,7 +30,9 @@ function mapVideo(d) {
   return {
     ...d,
     storagePath: d.storagepath,
-    createdAt: parseInt(d.createdat, 10) || 0
+    createdAt: parseInt(d.createdat, 10) || 0,
+    likes: d.likes || 0,
+    comments: d.comments || []
   };
 }
 
@@ -147,6 +149,20 @@ export async function incrementStat(id, statName) {
   if (doc) {
     const newVal = (doc[statName] || 0) + 1;
     await supabase.from('videos').update({ [statName]: newVal }).eq('id', id);
+    notifyUpdate();
+  }
+}
+
+export async function addComment(id, commentText) {
+  const { data: doc } = await supabase.from('videos').select('comments').eq('id', id).single();
+  if (doc) {
+    const comments = doc.comments || [];
+    comments.push({
+      id: Date.now().toString(),
+      text: commentText,
+      timestamp: Date.now()
+    });
+    await supabase.from('videos').update({ comments }).eq('id', id);
     notifyUpdate();
   }
 }

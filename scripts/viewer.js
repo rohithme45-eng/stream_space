@@ -1,4 +1,4 @@
-import { getAllVideos, getVideo, incrementStat } from './video-db.js?v=6';
+import { getAllVideos, getVideo, incrementStat, addComment } from './video-db.js?v=7';
 
 const container = document.getElementById('videos');
 
@@ -11,7 +11,7 @@ async function render(){
   all.sort((a,b) => b.createdAt - a.createdAt);
   
   // Create a signature to prevent re-rendering if only views/downloads changed
-  const currentSignature = all.map(v => `${v.id}-${v.name}-${v.url}`).join('|');
+  const currentSignature = all.map(v => `${v.id}-${v.name}-${v.url}-${v.likes}-${v.comments?.length}`).join('|');
   if (container.dataset.signature === currentSignature) {
     return; // Nothing visual changed, do not interrupt playback
   }
@@ -41,7 +41,7 @@ async function render(){
     
     const dl = document.createElement('a');
     dl.className = 'btn';
-    dl.innerHTML = '<i class="fa-solid fa-download"></i> Download Media';
+    dl.innerHTML = '<i class="fa-solid fa-download"></i> Download';
     dl.href = '#';
     dl.addEventListener('click', async (e) =>{
       e.preventDefault();
@@ -66,9 +66,57 @@ async function render(){
       dl.style.pointerEvents = 'auto';
     });
     
+    const likeBtn = document.createElement('button');
+    likeBtn.className = 'btn like-btn';
+    likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i> Like (${item.likes || 0})`;
+    likeBtn.addEventListener('click', () => {
+      likeBtn.disabled = true;
+      incrementStat(item.id, 'likes');
+    });
+
+    const statsRow = document.createElement('div');
+    statsRow.className = 'stats-row';
+    statsRow.appendChild(likeBtn);
+    statsRow.appendChild(dl);
+
+    // Comments Section
+    const commentsSection = document.createElement('div');
+    commentsSection.className = 'comments-section';
+    commentsSection.innerHTML = `<h3><i class="fa-solid fa-comments"></i> Comments (${(item.comments || []).length})</h3>`;
+    
+    const commentsList = document.createElement('div');
+    commentsList.className = 'comments-list';
+    (item.comments || []).forEach(c => {
+      const cEl = document.createElement('div');
+      cEl.className = 'comment';
+      cEl.innerText = c.text;
+      commentsList.appendChild(cEl);
+    });
+    commentsSection.appendChild(commentsList);
+
+    const commentForm = document.createElement('form');
+    commentForm.className = 'comment-form';
+    commentForm.innerHTML = `
+      <input type="text" placeholder="Add a comment..." required>
+      <button type="submit" class="btn"><i class="fa-solid fa-paper-plane"></i></button>
+    `;
+    commentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = commentForm.querySelector('input');
+      const text = input.value.trim();
+      if (text) {
+        const btn = commentForm.querySelector('button');
+        btn.disabled = true;
+        await addComment(item.id, text);
+        input.value = '';
+      }
+    });
+    commentsSection.appendChild(commentForm);
+
     card.appendChild(title);
     card.appendChild(videoEl);
-    card.appendChild(dl);
+    card.appendChild(statsRow);
+    card.appendChild(commentsSection);
     container.appendChild(card);
   }
 }
