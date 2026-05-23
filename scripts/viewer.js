@@ -3,13 +3,22 @@ import { getAllVideos, getVideo, incrementStat } from './video-db.js?v=6';
 const container = document.getElementById('videos');
 
 async function render(){
-  container.innerHTML = '';
   const all = await getAllVideos();
   if(!all || all.length === 0){
     container.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); font-size: 1.2rem;">No media content available yet. Admins can upload videos from the portal.</p>';
     return;
   }
   all.sort((a,b) => b.createdAt - a.createdAt);
+  
+  // Create a signature to prevent re-rendering if only views/downloads changed
+  const currentSignature = all.map(v => `${v.id}-${v.name}-${v.url}`).join('|');
+  if (container.dataset.signature === currentSignature) {
+    return; // Nothing visual changed, do not interrupt playback
+  }
+  
+  container.dataset.signature = currentSignature;
+  container.innerHTML = '';
+  
   for(const item of all){
     const card = document.createElement('div');
     card.className = 'card';
