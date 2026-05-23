@@ -1,4 +1,4 @@
-import { saveVideo, getAllVideos, deleteVideo, updateVideo, getVideo, bc } from './video-db.js?v=4';
+import { saveVideo, getAllVideos, deleteVideo, updateVideo, getVideo, bc } from './video-db.js?v=5';
 
 bc.onmessage = (e) => {
   if (e.data === 'update') updateAnalytics();

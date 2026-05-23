@@ -1,4 +1,4 @@
-import { getAllVideos, getVideo, incrementStat, bc } from './video-db.js?v=3';
+import { getAllVideos, getVideo, incrementStat, bc } from './video-db.js?v=5';
 
 const container = document.getElementById('videos');
 
