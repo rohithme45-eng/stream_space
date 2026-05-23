@@ -1,4 +1,4 @@
-import { getAllVideos, getVideo, incrementStat, addComment } from './video-db.js?v=7';
+import { getAllVideos, getVideo, incrementStat, decrementStat, addComment } from './video-db.js?v=8';
 
 const container = document.getElementById('videos');
 
@@ -69,12 +69,32 @@ async function render(){
       dl.style.pointerEvents = 'auto';
     });
     
+    const hasLiked = localStorage.getItem('liked_' + item.id) === 'true';
+    
     const likeBtn = document.createElement('button');
     likeBtn.className = 'btn like-btn';
-    likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i> Like (${item.likes || 0})`;
-    likeBtn.addEventListener('click', () => {
+    
+    if (hasLiked) {
+      likeBtn.innerHTML = `<i class="fa-solid fa-heart" style="color: white;"></i> Liked (${item.likes || 0})`;
+      likeBtn.style.background = 'linear-gradient(135deg, #ff416c, #ff4b2b)';
+    } else {
+      likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i> Like (${item.likes || 0})`;
+      likeBtn.style.background = 'rgba(0,0,0,0.4)';
+    }
+    
+    likeBtn.addEventListener('click', async () => {
       likeBtn.disabled = true;
-      incrementStat(item.id, 'likes');
+      if (hasLiked) {
+        localStorage.removeItem('liked_' + item.id);
+        likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i> Like (${Math.max((item.likes || 0) - 1, 0)})`;
+        likeBtn.style.background = 'rgba(0,0,0,0.4)';
+        await decrementStat(item.id, 'likes');
+      } else {
+        localStorage.setItem('liked_' + item.id, 'true');
+        likeBtn.innerHTML = `<i class="fa-solid fa-heart" style="color: white;"></i> Liked (${(item.likes || 0) + 1})`;
+        likeBtn.style.background = 'linear-gradient(135deg, #ff416c, #ff4b2b)';
+        await incrementStat(item.id, 'likes');
+      }
     });
 
     const statsRow = document.createElement('div');

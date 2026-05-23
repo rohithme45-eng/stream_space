@@ -184,6 +184,15 @@ export async function incrementStat(id, statName) {
   }
 }
 
+export async function decrementStat(id, statName) {
+  const { data: doc } = await supabase.from('videos').select(statName).eq('id', id).single();
+  if (doc) {
+    const newVal = Math.max((doc[statName] || 0) - 1, 0);
+    await supabase.from('videos').update({ [statName]: newVal }).eq('id', id);
+    notifyUpdate();
+  }
+}
+
 export async function addComment(id, commentText) {
   const { data: doc } = await supabase.from('videos').select('comments').eq('id', id).single();
   if (doc) {
